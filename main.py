@@ -1,16 +1,32 @@
-# This is a sample Python script.
+import argparse
+import logging
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+from kzvisabot.config import load_settings
+from kzvisabot.worker import run_check_once, run_forever
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+def _setup_logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s - %(message)s",
+    )
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="KzVisaBot: visa slot watcher")
+    parser.add_argument("--once", action="store_true", help="Run single check and exit")
+    args = parser.parse_args()
+
+    _setup_logging()
+    settings = load_settings()
+
+    if args.once:
+        run_check_once(settings)
+        return 0
+
+    run_forever(settings)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
