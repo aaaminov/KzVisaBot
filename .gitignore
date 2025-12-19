@@ -1,0 +1,5 @@
+.env*
+!.env.example
+.idea
+.venv
+other-visa-checker
