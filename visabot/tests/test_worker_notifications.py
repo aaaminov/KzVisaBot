@@ -11,14 +11,15 @@ from visabot.worker import run_check_once
 
 def _settings() -> Settings:
     # Минимально заполненный Settings, достаточный для run_check_once().
+    # ВАЖНО: тесты не должны содержать реальные данные/токены/id и не должны отправлять сообщения в сеть.
     return Settings(
         visa_username="u",
         visa_password="p",
         country_code="ru-kz",
         schedule_id="71716653",
         facility_id=1,
-        telegram_bot_token="token",
-        telegram_chat_id="chat",
+        telegram_bot_token="TEST_TOKEN",
+        telegram_chat_id="TEST_CHAT_ID",
         check_interval_seconds=1,
         headless=True,
         check_retry_attempts=1,
