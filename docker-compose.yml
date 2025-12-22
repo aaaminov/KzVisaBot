@@ -5,6 +5,5 @@ services:
       - .env
     volumes:
       - ./data:/app/data
-      - ./wdm-cache:/app/.wdm
+      - ./wdm-cache:/home/appuser/.wdm
     restart: unless-stopped
-

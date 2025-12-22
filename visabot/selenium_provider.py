@@ -4,6 +4,7 @@ import datetime as dt
 import os
 import shutil
 import time
+from pathlib import Path
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, InvalidSessionIdException, WebDriverException
@@ -13,6 +14,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.driver_cache import DriverCacheManager
 
 from visabot.domain import Slot, BusyError
 
@@ -57,6 +59,37 @@ def _running_in_docker() -> bool:
     return os.path.exists("/.dockerenv") or os.getenv("RUNNING_IN_DOCKER", "").strip() == "1"
 
 
+def _ensure_wdm_cache_dir() -> str | None:
+    """Гарантирует, что у webdriver-manager есть каталог для записи.
+
+    В контейнерах мы часто работаем под non-root пользователем, и дефолтный путь
+    (например, /app/.wdm при смонтированном volume) может быть недоступен.
+
+    Приоритет:
+    1) WDM_CACHE_DIR (если задан)
+    2) ~/.wdm (домашняя директория текущего пользователя)
+    """
+
+    raw = os.getenv("WDM_CACHE_DIR")
+    cache_dir = raw.strip() if raw else ""
+    if not cache_dir:
+        cache_dir = str(Path.home() / ".wdm")
+
+    try:
+        Path(cache_dir).mkdir(parents=True, exist_ok=True)
+    except Exception:
+        # Если не получилось создать каталог — не ломаем стартап.
+        # webdriver-manager попробует использовать дефолтные пути и упадёт с понятной ошибкой.
+        return None
+
+    # webdriver-manager использует эти переменные (разные версии по-разному),
+    # так что выставляем обе для надёжности.
+    os.environ.setdefault("WDM_CACHE_DIR", cache_dir)
+    os.environ.setdefault("WDM_LOCAL", "1")
+
+    return cache_dir
+
+
 def start_driver(*, headless: bool) -> webdriver.Chrome:
     options = Options()
 
@@ -91,7 +124,12 @@ def start_driver(*, headless: bool) -> webdriver.Chrome:
     if chrome_bin:
         options.binary_location = chrome_bin
 
-    service = Service(ChromeDriverManager().install())
+    cache_dir = _ensure_wdm_cache_dir()
+    if cache_dir:
+        service = Service(ChromeDriverManager(cache_manager=DriverCacheManager(root_dir=cache_dir)).install())
+    else:
+        service = Service(ChromeDriverManager().install())
+
     return webdriver.Chrome(service=service, options=options)
 
 

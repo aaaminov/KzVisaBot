@@ -55,8 +55,9 @@ RUN set -eux; \
 # default state file location (mount ./data to persist)
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    HOME=/home/appuser \
     WDM_LOCAL=1 \
-    WDM_CACHE_DIR=/app/.wdm \
+    WDM_CACHE_DIR=/home/appuser/.wdm \
     STATE_FILE=/app/data/state.json
 
 WORKDIR /app
@@ -71,11 +72,11 @@ COPY visabot /app/visabot
 COPY main.py /app/main.py
 
 # Data dir for state/debug artifacts
-RUN mkdir -p /app/data /app/.wdm
+RUN mkdir -p /app/data /home/appuser/.wdm
 
 # A non-root user is nicer for hosted environments
 RUN useradd -m -u 10001 appuser \
-    && chown -R appuser:appuser /app
+    && chown -R appuser:appuser /app /home/appuser
 USER appuser
 
 CMD ["python", "main.py"]
