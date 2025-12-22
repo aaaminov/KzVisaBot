@@ -164,8 +164,8 @@ def run_check_once(settings: Settings) -> None:
         logger.info("State saved to %s", settings.state_file)
 
     except Exception as e:
-        # Здесь стектрейс полезен — это финальная ошибка после всех попыток.
-        logger.exception("Check failed")
+        # Стектрейс не логируем, чтобы не засорять логи
+        logger.error("Check failed (%s: %s)", type(e).__name__, e)
         try:
             _send_status_message(
                 settings,
