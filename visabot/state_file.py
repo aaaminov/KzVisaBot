@@ -6,7 +6,7 @@ import tempfile
 from dataclasses import asdict
 from typing import Iterable
 
-from kzvisabot.domain import Slot
+from visabot.domain import Slot
 
 
 def load_slots(path: str) -> set[Slot]:

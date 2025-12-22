@@ -6,17 +6,17 @@ from typing import Iterable
 
 from tenacity import RetryCallState, retry, stop_after_attempt, wait_exponential
 
-from kzvisabot.config import Settings
-from kzvisabot.domain import Slot
-from kzvisabot.selenium_provider import (
+from visabot.config import Settings
+from visabot.domain import Slot
+from visabot.selenium_provider import (
     build_appointments_url,
     build_sign_in_url,
     fetch_available_slots,
     log_in,
     start_driver,
 )
-from kzvisabot.state_file import load_slots, save_slots
-from kzvisabot.telegram_notifier import send_telegram_message
+from visabot.state_file import load_slots, save_slots
+from visabot.telegram_notifier import send_telegram_message
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,7 @@ def _log_before_sleep(retry_state: RetryCallState) -> None:
 
 @retry(
     stop=stop_after_attempt(2),
-    wait=wait_exponential(multiplier=2, min=2, max=8),
+    wait=wait_exponential(multiplier=2, min=2, max=4),
     before=_log_before_attempt,
     after=_log_after_attempt,
     before_sleep=_log_before_sleep,

@@ -1,8 +1,8 @@
 import argparse
 import logging
 
-from kzvisabot.config import load_settings
-from kzvisabot.worker import run_check_once, run_forever
+from visabot.config import load_settings
+from visabot.worker import run_check_once, run_forever
 
 
 def _setup_logging() -> None:
