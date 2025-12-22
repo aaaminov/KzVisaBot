@@ -20,6 +20,14 @@ class Settings:
     check_interval_seconds: int = 300
     headless: bool = True
 
+    # Retry tuning
+    # How many times we allow a full check (login + fetch) to be retried on failure.
+    check_retry_attempts: int = 2
+
+    # Selenium tuning
+    # How many times we allow page refresh/rehydration attempts while trying to open the calendar.
+    appointments_max_refresh_attempts: int = 5
+
     # Where we store last seen slots
     state_file: str = "state.json"
 
@@ -39,6 +47,14 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
     headless_raw = os.getenv("HEADLESS", "1").strip().lower()
     headless = headless_raw not in {"0", "false", "no"}
 
+    check_retry_attempts = int(os.getenv("CHECK_RETRY_ATTEMPTS", "2"))
+    if check_retry_attempts < 1:
+        raise RuntimeError("CHECK_RETRY_ATTEMPTS must be >= 1")
+
+    appointments_max_refresh_attempts = int(os.getenv("APPOINTMENTS_MAX_REFRESH_ATTEMPTS", "5"))
+    if appointments_max_refresh_attempts < 1:
+        raise RuntimeError("APPOINTMENTS_MAX_REFRESH_ATTEMPTS must be >= 1")
+
     state_file = os.getenv("STATE_FILE", "state.json")
 
     return Settings(
@@ -51,6 +67,7 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         telegram_chat_id=_require("TELEGRAM_CHAT_ID"),
         check_interval_seconds=check_interval_seconds,
         headless=headless,
+        check_retry_attempts=check_retry_attempts,
+        appointments_max_refresh_attempts=appointments_max_refresh_attempts,
         state_file=state_file,
     )
-

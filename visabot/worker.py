@@ -84,15 +84,7 @@ def _log_before_sleep(retry_state: RetryCallState) -> None:
         logger.info("Перед попыткой %s пауза %.0f сек.", next_attempt, sleep_seconds)
 
 
-@retry(
-    stop=stop_after_attempt(2),
-    wait=wait_exponential(multiplier=2, min=2, max=4),
-    before=_log_before_attempt,
-    after=_log_after_attempt,
-    before_sleep=_log_before_sleep,
-    reraise=True,
-)
-def _run_check_once_with_retry(settings: Settings) -> set[Slot]:
+def _run_check_once(settings: Settings) -> set[Slot]:
     sign_in_url = build_sign_in_url(settings.country_code)
     appointments_url = build_appointments_url(settings.country_code, settings.schedule_id)
 
@@ -113,12 +105,26 @@ def _run_check_once_with_retry(settings: Settings) -> set[Slot]:
             driver,
             appointments_url=appointments_url,
             facility_id=settings.facility_id,
+            max_refresh_attempts=settings.appointments_max_refresh_attempts,
         )
     finally:
         try:
             driver.quit()
         except Exception:
             logger.warning("Failed to quit driver cleanly", exc_info=True)
+
+
+def _run_check_once_with_retry(settings: Settings) -> set[Slot]:
+    decorated = retry(
+        stop=stop_after_attempt(settings.check_retry_attempts),
+        wait=wait_exponential(multiplier=2, min=2, max=4),
+        before=_log_before_attempt,
+        after=_log_after_attempt,
+        before_sleep=_log_before_sleep,
+        reraise=True,
+    )(_run_check_once)
+
+    return decorated(settings)
 
 
 def run_check_once(settings: Settings) -> None:

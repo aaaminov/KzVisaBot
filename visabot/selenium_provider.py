@@ -149,7 +149,11 @@ def fetch_available_slots(
     facility_id: int,
     months_ahead: int = 6,
     wait_seconds: int = 60,
+    max_refresh_attempts: int = 5,
 ) -> set[Slot]:
+    if max_refresh_attempts < 1:
+        raise ValueError("max_refresh_attempts must be >= 1")
+
     driver.get(appointments_url)
 
     wait = WebDriverWait(driver, wait_seconds)
@@ -189,7 +193,7 @@ def fetch_available_slots(
 
     # Основной цикл: выбираем консульство, затем ждём либо календарь, либо busy.
     # Если busy — обновляем страницу и повторяем.
-    for attempt in range(1, 6):
+    for attempt in range(1, max_refresh_attempts + 1):
         try:
             _select_facility(driver, facility_id=facility_id, wait_seconds=min(30, wait_seconds))
 
