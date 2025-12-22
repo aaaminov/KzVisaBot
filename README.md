@@ -1,36 +1,86 @@
 # KzVisaBot
 
-Сервис-воркер для отслеживания свободных дат собеседования на сайте `ais.usvisa-info.com` и отправки уведомлений в Telegram.
+Бот-наблюдатель за доступными датами записи на собеседование на сайте `ais.usvisa-info.com`.
 
-## Быстрый старт (Windows)
+Текущий статус проекта: **MVP** — логинится через Selenium, читает календарь доступных дат и шлёт уведомления в Telegram при появлении новых дат. Автоматическая запись (booking) по ТЗ пока **не реализована**.
 
-1) Создайте файл `.env` в корне проекта (на основе `.env.example`) и заполните реальными значениями:
+## Архитектура (как работает)
 
-- `VISA_USERNAME`, `VISA_PASSWORD`
-- `COUNTRY_CODE` (например `ru-kz`)
-- `SCHEDULE_ID` (id записи в URL при попытке reschedule)
-- `APPOINTMENTS_CONSULATE_APPOINTMENT_FACILITY_ID` (134/135)
-- `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+Поток выполнения:
 
-Опционально:
-- `CHECK_INTERVAL_SECONDS` (по умолчанию 300)
-- `HEADLESS` (1/0)
-- `STATE_FILE` (по умолчанию `state.json`)
+1. `main.py` — CLI-точка входа.
+2. `visa-bot.config.load_settings()` — читает переменные окружения (`.env`) и собирает `Settings`.
+3. `visa-bot.worker` — основной цикл:
+   - запускает Selenium (Chrome);
+   - выполняет логин на сайт;
+   - открывает страницу записи и парсит календарь доступных дат;
+   - сравнивает с последним сохранённым состоянием (`state.json`);
+   - при появлении новых дат отправляет сообщение в Telegram;
+   - сохраняет новое состояние.
 
-2) Установите зависимости (проект использует `uv.lock`, но подойдёт и обычный pip).
+Ключевые внешние зависимости:
+- **Selenium + ChromeDriver** (через `webdriver-manager`) — для работы с сайтом.
+- **Telegram Bot API** (через `httpx`) — для уведомлений.
+- **tenacity** — ретраи на случай временных сбоев сайта/браузера.
 
-3) Запуск одного прохода (смоук-тест):
+## Назначение файлов и модулей
 
-- `python main.py --once`
+### Корень проекта
 
-4) Запуск 24/7 мониторинга:
+- `main.py`
+  - Точка входа.
+  - Флаг `--once` выполняет одну проверку и завершает работу, без флага — бесконечный цикл.
 
-- `python main.py`
+- `pyproject.toml`
+  - Метаданные проекта и зависимости (selenium, webdriver-manager, python-dotenv, httpx, tenacity).
 
-## Важно про капчу / антибот
+- `uv.lock`
+  - Lock-файл зависимостей для `uv`.
 
-Сайт `ais.usvisa-info.com` может показывать Cloudflare/reCAPTCHA. В этом MVP мы не решаем капчу автоматически.
-Если капча появляется часто, попробуйте:
-- запускать не в headless (`HEADLESS=0`),
-- увеличить интервалы проверки,
-- использовать отдельный стабильный IP.
+- `Technical_Specification.md`
+  - Техническое задание/цели (в т.ч. автоматическая запись, ограничения по датам, антибот-защита).
+
+- `.env` (не в репозитории/или может быть локальный)
+  - Переменные окружения для запуска (логин/пароль, schedule id, facility id, токен Telegram и т.д.).
+
+### Пакет `visa-bot/`
+
+- `visa-bot/__init__.py`
+  - Маркер пакета.
+
+- `visa-bot/config.py`
+  - `Settings` (dataclass) и `load_settings()`.
+  - Валидация обязательных env-переменных.
+  - Настройки интервала, headless-режима и пути к state-файлу.
+
+- `visa-bot/domain.py`
+  - Доменные модели.
+  - `Slot` — доступная дата (YYYY-MM-DD) + `facility_id`.
+
+- `visa-bot/worker.py`
+  - Оркестрация процесса проверки.
+  - `run_check_once()` — один проход: получить слоты → сравнить с прошлым → уведомить → сохранить.
+  - `run_forever()` — бесконечный цикл с паузой `CHECK_INTERVAL_SECONDS`.
+  - Ретраи (`tenacity`) для одного прохода `_run_check_once_with_retry()`.
+
+- `visa-bot/selenium_provider.py`
+  - Вся работа с Selenium:
+    - сбор URL (`build_sign_in_url`, `build_appointments_url`);
+    - запуск Chrome (`start_driver`);
+    - логин (`log_in`);
+    - выбор консульства/facility (`_select_facility`);
+    - парсинг календаря jQuery UI datepicker (`fetch_available_slots`).
+  - Есть обработка частых проблем: «система занята», таймауты, падение DevTools, сохранение debug html/png при таймауте.
+
+- `visa-bot/state_file.py`
+  - Хранение “последний раз видели такие слоты” в JSON.
+  - `load_slots()` — читает `state.json`, битый JSON не ломает воркер.
+  - `save_slots()` — атомарная запись через временный файл.
+
+- `visa-bot/telegram_notifier.py`
+  - Отправка сообщений в Telegram (`send_telegram_message`) через Bot API.
+
+## Примечания
+
+- Сайт может показывать Cloudflare/reCAPTCHA и другие антибот-защиты — текущий MVP не решает капчу, а просто ждёт появления формы.
+- `state.json` по умолчанию создаётся рядом с запуском (можно переопределить `STATE_FILE`).
