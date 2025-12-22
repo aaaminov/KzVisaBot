@@ -6,6 +6,38 @@ from dataclasses import dataclass
 from dotenv import load_dotenv
 
 
+def _parse_telegram_chat_ids(raw: str) -> tuple[str, ...]:
+    # TELEGRAM_CHAT_ID supports a single value or a comma-separated list.
+    # Examples:
+    #   TELEGRAM_CHAT_ID=123456789
+    #   TELEGRAM_CHAT_ID=123456789,-1001234567890
+    parts = [p.strip() for p in raw.split(",")]
+    parts = [p for p in parts if p]
+
+    seen: set[str] = set()
+    result: list[str] = []
+    for p in parts:
+        # Telegram allows numeric IDs; groups/supergroups can be negative.
+        try:
+            # Validate it's an integer-like value.
+            int(p)
+        except ValueError as e:
+            raise RuntimeError(f"Invalid TELEGRAM_CHAT_ID value: {p!r}. Expected integer chat id.") from e
+
+        if p == "0":
+            raise RuntimeError("Invalid TELEGRAM_CHAT_ID value: '0' is not a valid chat id")
+
+        if p in seen:
+            continue
+        seen.add(p)
+        result.append(p)
+
+    if not result:
+        raise RuntimeError("TELEGRAM_CHAT_ID is empty. Provide at least one chat id.")
+
+    return tuple(result)
+
+
 @dataclass(frozen=True)
 class Settings:
     visa_username: str
@@ -15,7 +47,7 @@ class Settings:
     facility_id: int
 
     telegram_bot_token: str
-    telegram_chat_id: str
+    telegram_chat_ids: tuple[str, ...]
 
     check_interval_seconds: int = 300
     headless: bool = True
@@ -64,7 +96,7 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         schedule_id=_require("SCHEDULE_ID"),
         facility_id=int(_require("APPOINTMENTS_CONSULATE_APPOINTMENT_FACILITY_ID")),
         telegram_bot_token=_require("TELEGRAM_BOT_TOKEN"),
-        telegram_chat_id=_require("TELEGRAM_CHAT_ID"),
+        telegram_chat_ids=_parse_telegram_chat_ids(_require("TELEGRAM_CHAT_ID")),
         check_interval_seconds=check_interval_seconds,
         headless=headless,
         check_retry_attempts=check_retry_attempts,

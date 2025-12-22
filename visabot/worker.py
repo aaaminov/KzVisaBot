@@ -26,14 +26,32 @@ def _format_slots(slots: Iterable[Slot]) -> str:
     return "\n".join([f"• {s.date_iso} (facility_id={s.facility_id})" for s in by_date])
 
 
+def _broadcast_telegram(settings: Settings, text: str) -> None:
+    errors: list[tuple[str, Exception]] = []
+
+    for chat_id in settings.telegram_chat_ids:
+        try:
+            send_telegram_message(
+                bot_token=settings.telegram_bot_token,
+                chat_id=chat_id,
+                text=text,
+            )
+        except Exception as e:
+            # Best-effort: don't stop sending to other chat_ids.
+            logger.warning("Failed to send telegram message to chat_id=%s (%s: %s)", chat_id, type(e).__name__, e)
+            errors.append((chat_id, e))
+
+    if errors:
+        # Keep behavior explicit: if at least one send failed, raise.
+        # This is safer for monitoring; caller may catch.
+        failed = ", ".join([cid for cid, _ in errors])
+        raise RuntimeError(f"Failed to send telegram message to some recipients: {failed}")
+
+
 def _send_status_message(settings: Settings, text: str) -> None:
     # Статусные сообщения полезны для контроля, но могут спамить.
     # Если захочешь — легко выключим через env-флаг.
-    send_telegram_message(
-        bot_token=settings.telegram_bot_token,
-        chat_id=settings.telegram_chat_id,
-        text=text,
-    )
+    _broadcast_telegram(settings, text)
 
 
 def _short_exc(retry_state: RetryCallState) -> str | None:
@@ -147,11 +165,7 @@ def run_check_once(settings: Settings) -> None:
                 f"{_format_slots(new_slots)}\n\n"
                 f"Ссылка: {appointments_url}"
             )
-            send_telegram_message(
-                bot_token=settings.telegram_bot_token,
-                chat_id=settings.telegram_chat_id,
-                text=text,
-            )
+            _broadcast_telegram(settings, text)
             logger.info("Telegram notification sent.")
         else:
             _send_status_message(

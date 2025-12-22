@@ -19,7 +19,7 @@ def _settings() -> Settings:
         schedule_id="71716653",
         facility_id=1,
         telegram_bot_token="TEST_TOKEN",
-        telegram_chat_id="TEST_CHAT_ID",
+        telegram_chat_ids=("1", "2", "3"),
         check_interval_seconds=1,
         headless=True,
         check_retry_attempts=1,
@@ -48,7 +48,7 @@ def test_real_error_sends_telegram_and_reraises() -> None:
     ):
         with pytest.raises(RuntimeError):
             run_check_once(settings)
-        assert send_msg.call_count == 1
+        assert send_msg.call_count == len(settings.telegram_chat_ids)
 
 
 def test_new_slots_send_telegram() -> None:
@@ -63,5 +63,5 @@ def test_new_slots_send_telegram() -> None:
         patch("visabot.worker.send_telegram_message") as send_msg,
     ):
         run_check_once(settings)
-        assert send_msg.call_count == 1
+        assert send_msg.call_count == len(settings.telegram_chat_ids)
         save_slots.assert_called_once()
