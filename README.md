@@ -23,6 +23,20 @@
 - **Telegram Bot API** (через `httpx`) — для уведомлений.
 - **tenacity** — ретраи на случай временных сбоев сайта/браузера.
 
+## Переменные окружения (.env)
+
+Обязательные:
+- `VISA_USERNAME`
+- `VISA_PASSWORD`
+- `COUNTRY_CODE`
+- `SCHEDULE_ID`
+- `APPOINTMENTS_CONSULATE_APPOINTMENT_FACILITY_ID`
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID` — один chat_id или список через запятую (например: `12345,-1001234567890`).
+
+Необязательные:
+- `TELEGRAM_ADMIN_CHAT_ID` — chat_id, который будет получать **копию всех сообщений**, а также уведомления о штатном состоянии `BusyError` ("система занята").
+
 ## Назначение файлов и модулей
 
 ### Корень проекта
@@ -54,7 +68,7 @@
   - Настройки интервала, headless-режима и пути к state-файлу.
 
 - `visa-bot/domain.py`
-  - Доменные модели.
+  - Доменнные модели.
   - `Slot` — доступная дата (YYYY-MM-DD) + `facility_id`.
 
 - `visa-bot/worker.py`

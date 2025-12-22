@@ -38,6 +38,24 @@ def _parse_telegram_chat_ids(raw: str) -> tuple[str, ...]:
     return tuple(result)
 
 
+def _parse_optional_telegram_chat_id(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    value = raw.strip()
+    if not value:
+        return None
+
+    try:
+        int(value)
+    except ValueError as e:
+        raise RuntimeError(f"Invalid TELEGRAM_ADMIN_CHAT_ID value: {value!r}. Expected integer chat id.") from e
+
+    if value == "0":
+        raise RuntimeError("Invalid TELEGRAM_ADMIN_CHAT_ID value: '0' is not a valid chat id")
+
+    return value
+
+
 @dataclass(frozen=True)
 class Settings:
     visa_username: str
@@ -48,6 +66,7 @@ class Settings:
 
     telegram_bot_token: str
     telegram_chat_ids: tuple[str, ...]
+    telegram_admin_chat_id: str | None = None
 
     check_interval_seconds: int = 300
     headless: bool = True
@@ -97,6 +116,7 @@ def load_settings(dotenv_path: str | None = None) -> Settings:
         facility_id=int(_require("APPOINTMENTS_CONSULATE_APPOINTMENT_FACILITY_ID")),
         telegram_bot_token=_require("TELEGRAM_BOT_TOKEN"),
         telegram_chat_ids=_parse_telegram_chat_ids(_require("TELEGRAM_CHAT_ID")),
+        telegram_admin_chat_id=_parse_optional_telegram_chat_id(os.getenv("TELEGRAM_ADMIN_CHAT_ID")),
         check_interval_seconds=check_interval_seconds,
         headless=headless,
         check_retry_attempts=check_retry_attempts,

@@ -29,7 +29,22 @@ def _format_slots(slots: Iterable[Slot]) -> str:
 def _broadcast_telegram(settings: Settings, text: str) -> None:
     errors: list[tuple[str, Exception]] = []
 
-    for chat_id in settings.telegram_chat_ids:
+    # Основные получатели из TELEGRAM_CHAT_ID, плюс (опционально) админский чат,
+    # который получает копию всех сообщений.
+    recipients: list[str] = list(settings.telegram_chat_ids)
+    if settings.telegram_admin_chat_id:
+        recipients.append(settings.telegram_admin_chat_id)
+
+    # Дедупликация, сохраняя порядок.
+    seen: set[str] = set()
+    recipients_unique: list[str] = []
+    for chat_id in recipients:
+        if chat_id in seen:
+            continue
+        seen.add(chat_id)
+        recipients_unique.append(chat_id)
+
+    for chat_id in recipients_unique:
         try:
             send_telegram_message(
                 bot_token=settings.telegram_bot_token,
@@ -52,6 +67,16 @@ def _send_status_message(settings: Settings, text: str) -> None:
     # Статусные сообщения полезны для контроля, но могут спамить.
     # Если захочешь — легко выключим через env-флаг.
     _broadcast_telegram(settings, text)
+
+
+def _send_admin_only(settings: Settings, text: str) -> None:
+    if not settings.telegram_admin_chat_id:
+        return
+    send_telegram_message(
+        bot_token=settings.telegram_bot_token,
+        chat_id=settings.telegram_admin_chat_id,
+        text=text,
+    )
 
 
 def _short_exc(retry_state: RetryCallState) -> str | None:
@@ -181,8 +206,26 @@ def run_check_once(settings: Settings) -> None:
         logger.info("State saved to %s", settings.state_file)
 
     except BusyError as e:
-        # Штатное состояние сайта. В Telegram не шлём.
+        # Штатное состояние сайта. Раньше в Telegram не шлём, но теперь (если задан админский чат)
+        # отправляем уведомление туда.
         logger.info("Site is busy, skipping notification (%s)", e)
+        if settings.telegram_admin_chat_id:
+            try:
+                _send_admin_only(
+                    settings,
+                    text=(
+                        "Сайт сообщает: система занята (BusyError).\n"
+                        f"Причина: {e}\n"
+                        f"Ссылка: {appointments_url}"
+                    ),
+                )
+            except Exception as send_exc:
+                # Busy — штатно; не хотим падать из-за проблем с Telegram.
+                logger.warning(
+                    "Failed to send telegram BusyError message to admin chat (%s: %s)",
+                    type(send_exc).__name__,
+                    send_exc,
+                )
         return
 
     except Exception as e:
