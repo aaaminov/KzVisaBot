@@ -24,6 +24,9 @@ def test_load_settings_parses_multiple_telegram_chat_ids(monkeypatch: pytest.Mon
 
 
 def test_load_settings_admin_chat_id_is_optional(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Ensure a clean environment: some IDEs/test runners may inject TELEGRAM_ADMIN_CHAT_ID.
+    monkeypatch.setattr(os, "environ", {})
+
     monkeypatch.setenv("VISA_USERNAME", "u")
     monkeypatch.setenv("VISA_PASSWORD", "p")
     monkeypatch.setenv("COUNTRY_CODE", "ru-kz")

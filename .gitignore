@@ -1,5 +1,43 @@
+# Environment files
 .env*
 !.env.example
-.idea
-.venv
-other-visa-checker
+
+# JetBrains IDE
+.idea/
+
+# Python virtual environments
+.venv/
+venv/
+
+# Python cache / bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pytype/
+
+# Coverage
+.coverage
+coverage.xml
+htmlcov/
+
+# Build / packaging
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Local runtime state / artifacts
+state.json
+
+# Selenium webdriver-manager cache
+wdm-cache/
+
+# Example project folder (not part of prod code)
+other-visa-checker/

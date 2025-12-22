@@ -1,0 +1,43 @@
+# VCS / IDE
+.git/
+.github/
+.idea/
+
+# Python virtual env
+.venv/
+venv/
+
+# Python bytecode / caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Packaging artifacts
+build/
+dist/
+*.egg-info/
+
+# Logs
+*.log
+
+# Local env files (keep example)
+.env*
+!.env.example
+
+# Runtime state / local data
+state.json
+data/
+
+# Selenium webdriver-manager cache
+wdm-cache/
+
+# Example project folder (not needed in image)
+other-visa-checker/
+
+# Optional: docs/assets not required at runtime
+*.png
+*.html

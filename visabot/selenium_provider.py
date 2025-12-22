@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import datetime as dt
+import os
+import shutil
 import time
 
 from selenium import webdriver
@@ -50,16 +52,32 @@ def build_appointments_url(country_code: str, schedule_id: str) -> str:
     return f"{BASE_URL}/{country_code}/niv/schedule/{schedule_id}/appointment"
 
 
+def _running_in_docker() -> bool:
+    # Most common and cheap heuristics
+    return os.path.exists("/.dockerenv") or os.getenv("RUNNING_IN_DOCKER", "").strip() == "1"
+
+
 def start_driver(*, headless: bool) -> webdriver.Chrome:
     options = Options()
+
+    # In containers there's usually no display server.
+    # If the user set HEADLESS=0 by mistake, force headless to avoid Chrome crashing.
+    if _running_in_docker():
+        headless = True
+
     # Keep it close to a real browser. Headless can be toggled via env.
     if headless:
         options.add_argument("--headless=new")
+
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
+    options.add_argument("--disable-setuid-sandbox")
+    options.add_argument("--disable-software-rasterizer")
     options.add_argument("--window-size=1200,900")
-    # Часто помогает от 'not connected to DevTools' на Windows
     options.add_argument("--disable-dev-shm-usage")
+    # Let Chrome pick a free port (helps in some container environments)
+    options.add_argument("--remote-debugging-port=0")
+
     options.add_argument("--disable-features=Translate,BackForwardCache")
     options.add_argument("--disable-background-networking")
     options.add_argument("--disable-background-timer-throttling")
@@ -67,6 +85,11 @@ def start_driver(*, headless: bool) -> webdriver.Chrome:
     options.add_argument(
         "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36"
     )
+
+    # Helpful diagnostics for container issues
+    chrome_bin = shutil.which("google-chrome") or shutil.which("google-chrome-stable")
+    if chrome_bin:
+        options.binary_location = chrome_bin
 
     service = Service(ChromeDriverManager().install())
     return webdriver.Chrome(service=service, options=options)
@@ -286,4 +309,3 @@ def fetch_available_slots(
         current_month_index += 1
 
     return slots
-

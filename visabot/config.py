@@ -91,8 +91,15 @@ def _require(name: str) -> str:
 
 
 def load_settings(dotenv_path: str | None = None) -> Settings:
-    # Prefer .env in repo root; dotenv_path allows overriding in tests.
-    load_dotenv(dotenv_path=dotenv_path, override=False)
+    # By default we don't auto-load .env when dotenv_path is None.
+    # This keeps tests isolated and avoids surprises on hosted environments.
+    # If you want to auto-load .env in the repo root, set LOAD_DOTENV=1.
+    if dotenv_path is not None:
+        load_dotenv(dotenv_path=dotenv_path, override=False)
+    else:
+        auto = os.getenv("LOAD_DOTENV", "0").strip().lower() in {"1", "true", "yes"}
+        if auto:
+            load_dotenv(override=False)
 
     check_interval_seconds = int(os.getenv("CHECK_INTERVAL_SECONDS", "300"))
     headless_raw = os.getenv("HEADLESS", "1").strip().lower()

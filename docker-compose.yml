@@ -1,0 +1,10 @@
+services:
+  kzvisabot:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./wdm-cache:/app/.wdm
+    restart: unless-stopped
+
