@@ -179,6 +179,7 @@ def run_forever(settings: Settings) -> None:
     while True:
         try:
             run_check_once(settings)
-        except Exception:
-            logger.exception("Check failed")
+        except Exception as e:
+            # Не дублируем полный traceback: он уже залогирован в run_check_once().
+            logger.error("Check failed in run_forever (%s: %s)", type(e).__name__, e)
         time.sleep(settings.check_interval_seconds)
