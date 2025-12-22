@@ -12,7 +12,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from webdriver_manager.chrome import ChromeDriverManager
 
-from visabot.domain import Slot
+from visabot.domain import Slot, BusyError
 
 BASE_URL = "https://ais.usvisa-info.com"
 
@@ -246,7 +246,7 @@ def fetch_available_slots(
             raise RuntimeError("Сессия Selenium оборвалась (not connected to DevTools)") from e
 
     if _busy_message_present(driver):
-        raise RuntimeError("Сайт вернул сообщение 'Система занята. Пожалуйста, повторите попытку позже'.")
+        raise BusyError("Сайт вернул сообщение 'Система занята. Пожалуйста, повторите попытку позже'.")
 
     if not driver.find_elements(By.CLASS_NAME, "ui-datepicker-group"):
         raise RuntimeError(

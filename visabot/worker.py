@@ -7,7 +7,7 @@ from typing import Iterable
 from tenacity import RetryCallState, retry, stop_after_attempt, wait_exponential
 
 from visabot.config import Settings
-from visabot.domain import Slot
+from visabot.domain import Slot, BusyError
 from visabot.selenium_provider import (
     build_appointments_url,
     build_sign_in_url,
@@ -138,6 +138,9 @@ def run_check_once(settings: Settings) -> None:
 
         logger.info("Slots: current=%d previous=%d new=%d", len(current), len(previous), len(new_slots))
 
+        # По требованию: если календарь появился (а значит мы получили current), можно уведомлять.
+        # Но чтобы не спамить, минимально продолжаем уведомлять только при появлении новых дат,
+        # а при отсутствии новых дат отправляем статус (как было раньше).
         if new_slots:
             text = (
                 "Появились новые свободные даты на собеседование:\n\n"
@@ -162,6 +165,11 @@ def run_check_once(settings: Settings) -> None:
 
         save_slots(settings.state_file, current)
         logger.info("State saved to %s", settings.state_file)
+
+    except BusyError as e:
+        # Штатное состояние сайта. В Telegram не шлём.
+        logger.info("Site is busy, skipping notification (%s)", e)
+        return
 
     except Exception as e:
         # Стектрейс не логируем, чтобы не засорять логи
