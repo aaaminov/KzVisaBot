@@ -35,9 +35,19 @@ dist/
 
 # Local runtime state / artifacts
 state.json
+/data/
 
 # Selenium webdriver-manager cache
 wdm-cache/
+.wdm
+
+# Debug artifacts (saved on Selenium timeouts)
+debug_appointments_*.png
+debug_appointments_*.html
+
+# Chrome/Selenium leftovers
+*.crdownload
+*.tmp
 
 # Example project folder (not part of prod code)
 other-visa-checker/

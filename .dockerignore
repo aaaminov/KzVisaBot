@@ -16,14 +16,6 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# Packaging artifacts
-build/
-dist/
-*.egg-info/
-
-# Logs
-*.log
-
 # Local env files (keep example)
 .env*
 !.env.example
@@ -34,10 +26,18 @@ data/
 
 # Selenium webdriver-manager cache
 wdm-cache/
+.wdm
+
+# Debug / artifacts
+*.log
+debug_appointments_*.png
+debug_appointments_*.html
+*.crdownload
 
 # Example project folder (not needed in image)
 other-visa-checker/
 
-# Optional: docs/assets not required at runtime
-*.png
-*.html
+# Packaging artifacts
+build/
+dist/
+*.egg-info/
