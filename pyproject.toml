@@ -13,6 +13,7 @@ dependencies = [
 ]
 
 [tool.pytest.ini_options]
+addopts = "-m 'not telegram'"
 markers = [
     "telegram: tests that call real Telegram API (smoke/integration)",
 ]

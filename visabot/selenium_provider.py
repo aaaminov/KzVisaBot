@@ -5,6 +5,7 @@ import os
 import shutil
 import time
 from pathlib import Path
+import logging
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, InvalidSessionIdException, WebDriverException
@@ -17,6 +18,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.core.driver_cache import DriverCacheManager
 
 from visabot.domain import Slot, BusyError
+
+logger = logging.getLogger(__name__)
 
 BASE_URL = "https://ais.usvisa-info.com"
 
@@ -278,6 +281,11 @@ def fetch_available_slots(
 
             if _busy_message_present(driver):
                 time.sleep(min(10, 2 * attempt))
+                logger.info(
+                    "Refreshing appointments page (attempt %s/%s, reason=busy_message)",
+                    attempt,
+                    max_refresh_attempts,
+                )
                 try:
                     driver.refresh()
                 except (InvalidSessionIdException, WebDriverException) as e:
@@ -291,6 +299,11 @@ def fetch_available_slots(
                     break
 
                 time.sleep(1)
+                logger.info(
+                    "Refreshing appointments page (attempt %s/%s, reason=datepicker_not_opened)",
+                    attempt,
+                    max_refresh_attempts,
+                )
                 try:
                     driver.refresh()
                 except (InvalidSessionIdException, WebDriverException) as e:
@@ -298,6 +311,11 @@ def fetch_available_slots(
                 continue
 
             time.sleep(1)
+            logger.info(
+                "Refreshing appointments page (attempt %s/%s, reason=calendar_not_found)",
+                attempt,
+                max_refresh_attempts,
+            )
             try:
                 driver.refresh()
             except (InvalidSessionIdException, WebDriverException) as e:
