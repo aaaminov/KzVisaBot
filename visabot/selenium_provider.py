@@ -69,7 +69,7 @@ def _ensure_wdm_cache_dir() -> str | None:
     (например, /app/.wdm при смонтированном volume) может быть недоступен.
 
     Приоритет:
-    1) WDM_CACHE_DIR (если задан)
+    1) WDM_CACHE_DIR (если задано)
     2) ~/.wdm (домашняя директория текущего пользователя)
     """
 
@@ -167,9 +167,29 @@ def log_in(driver: webdriver.Chrome, *, sign_in_url: str, username: str, passwor
 
 
 def _busy_message_present(driver: webdriver.Chrome) -> bool:
-    # На странице иногда появляется баннер/текст: "Система занята. Пожалуйста, повторите попытку позже".
-    # Ищем по подстроке, чтобы не быть привязанными к конкретной разметке.
-    text = driver.page_source.lower()
+    """True, если на странице реально показано состояние "Система занята".
+
+    Важно: текст "Система занята..." может присутствовать в DOM всегда, но быть скрытым.
+    Поэтому сначала проверяем видимость конкретного контейнера ошибки.
+    """
+
+    # 1) Стандартный контейнер ошибки на appointment-странице.
+    try:
+        els = driver.find_elements(By.ID, "consulate_date_time_not_available")
+        if els:
+            # Если элемент существует, то ориентируемся на видимость.
+            # В нормальном состоянии ("поля даты/времени показаны") этот блок присутствует, но скрыт.
+            return any(e.is_displayed() for e in els)
+    except Exception:
+        # Не ломаем сценарий из-за нестабильной разметки.
+        pass
+
+    # 2) Fallback: текстовый поиск (на случай, если разметка поменялась и контейнера нет).
+    try:
+        text = driver.page_source.lower()
+    except Exception:
+        return False
+
     return "система занята" in text and "повторите попытку позже" in text
 
 
