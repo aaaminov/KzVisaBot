@@ -34,10 +34,11 @@ debug_appointments_*.png
 debug_appointments_*.html
 *.crdownload
 
-# Example project folder (not needed in image)
-other-visa-checker/
-
 # Packaging artifacts
 build/
 dist/
 *.egg-info/
+
+# Example project folder (not needed in image)
+other-visa-checker/
+test-pages/
